@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>기록 · Anbu</title>
+<style>
+  :root {
+    --paper: #F3F1EC; --ink: #26241F; --ink-soft: #5C584E;
+    --celadon: #6FA294; --celadon-deep: #3E6B5F;
+    --amber: #C4863A; --line: #D8D4C9; --card: #FBFAF7; --danger: #A85843;
+    --sans: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 19px; line-height: 1.5; padding: 16px 14px 116px;
+    max-width: 560px; margin: 0 auto;
+  }
+  header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  h1 { font-size: 24px; font-weight: 700; }
+  h1 .en { font-size: 13px; font-weight: 400; color: var(--ink-soft); margin-left: 6px; }
+  .today { font-family: var(--mono); font-size: 16px; color: var(--ink-soft); }
+  .lede { font-size: 16px; color: var(--ink-soft); margin-bottom: 16px; }
+
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .event-btn {
+    border: 1.5px solid var(--celadon-deep); background: var(--card); color: var(--ink);
+    border-radius: 12px; padding: 20px 8px 16px; font-family: var(--sans);
+    font-size: 23px; font-weight: 700; cursor: pointer; text-align: center;
+    display: flex; flex-direction: column; gap: 2px; align-items: center;
+    min-height: 84px; justify-content: center;
+  }
+  .event-btn .en { font-size: 13.5px; font-weight: 400; color: var(--ink-soft); }
+  .event-btn:active { background: var(--celadon); color: #fff; }
+  .event-btn:active .en { color: #EAF2EF; }
+  .event-btn.wide { grid-column: 1 / -1; min-height: 68px; padding: 14px 8px; font-size: 21px; }
+  button:focus-visible { outline: 3px solid var(--celadon-deep); outline-offset: 2px; }
+
+  h2 { font-size: 20px; font-weight: 700; margin: 4px 0 8px; }
+  .entry-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .date-hdr {
+    font-size: 17px; font-weight: 700; color: var(--celadon-deep);
+    margin: 12px 0 0; letter-spacing: .02em;
+  }
+  .entry {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+  }
+  .entry .time-btn {
+    font-family: var(--mono); font-size: 20px; font-weight: 600;
+    border: 1px dashed var(--line); background: none; color: var(--celadon-deep);
+    padding: 6px 10px; border-radius: 8px; cursor: pointer;
+  }
+  .entry .label { font-size: 20px; font-weight: 600; flex: 1; }
+  .entry .note-text { font-size: 17px; font-weight: 400; color: var(--ink-soft); display: block; }
+  .entry .note-text.add { color: var(--gap); font-size: 15px; }
+  .entry .del {
+    border: none; background: none; color: var(--danger);
+    font-size: 24px; padding: 6px 10px; cursor: pointer;
+  }
+  .entry .del.arm {
+    background: var(--danger); color: #fff; border-radius: 8px;
+    font-size: 15px; font-weight: 700; padding: 8px 10px; white-space: nowrap;
+  }
+  .empty { color: var(--ink-soft); font-size: 17px; padding: 18px 4px; }
+
+  .sendbar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--paper); border-top: 1px solid var(--line);
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    display: flex; gap: 10px; max-width: 560px; margin: 0 auto;
+  }
+  .sendbar button {
+    flex: 1; border-radius: 12px; padding: 16px; font-size: 20px; font-weight: 700;
+    font-family: var(--sans); cursor: pointer;
+  }
+  #btnSend { background: var(--celadon-deep); color: #fff; border: none; }
+  #btnSend:active { background: #33584F; }
+  #btnCopy { background: var(--card); border: 1.5px solid var(--celadon-deep); color: var(--celadon-deep); flex: 0 0 auto; padding: 16px 18px; }
+
+  dialog {
+    border: 1px solid var(--line); border-radius: 14px; padding: 20px;
+    background: var(--card); max-width: 340px; width: 90%;
+    margin: auto; font-family: var(--sans);
+  }
+  dialog::backdrop { background: rgba(38,36,31,.4); }
+  dialog h3 { font-size: 20px; margin-bottom: 12px; }
+  dialog input[type="date"], dialog input[type="time"], dialog textarea {
+    width: 100%; font-size: 20px; padding: 10px; border: 1px solid var(--line);
+    border-radius: 8px; font-family: var(--sans); margin-bottom: 14px; background: #fff;
+  }
+  dialog textarea { font-size: 18px; resize: none; }
+  .dlg-row { display: flex; gap: 8px; }
+  .dlg-row button { flex: 1; padding: 14px; font-size: 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); font-family: var(--sans); cursor: pointer; }
+  .dlg-row button.ok { background: var(--celadon-deep); color: #fff; border-color: var(--celadon-deep); font-weight: 700; }
+
+  .toast {
+    position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--paper); font-size: 17px;
+    padding: 10px 20px; border-radius: 10px; opacity: 0; pointer-events: none;
+    transition: opacity .25s; white-space: nowrap; z-index: 10;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>기록<span class="en">Anbu logger</span></h1>
+  <span class="today" id="todayLabel"></span>
+</header>
+<p class="lede">버튼을 누르면 지금 시간으로 기록됩니다. 시간은 눌러서 고칠 수 있어요.</p>
+
+<div class="btn-grid">
+  <button class="event-btn" data-type="urination">소변<span class="en">urination</span></button>
+  <button class="event-btn" data-type="bm">대변<span class="en">bowel movement</span></button>
+  <button class="event-btn" data-type="attempt">대변 시도<span class="en">BM attempt</span></button>
+  <button class="event-btn" data-type="imaging">촬영<span class="en">imaging (CT/MRI)</span></button>
+  <button class="event-btn" data-type="bp">혈압<span class="en">blood pressure</span></button>
+  <button class="event-btn" data-type="glucose">혈당<span class="en">blood sugar</span></button>
+  <button class="event-btn" data-type="neuroverbal">질문 검사<span class="en">verbal exam</span></button>
+  <button class="event-btn" data-type="neuromotor">운동 검사<span class="en">movement exam</span></button>
+  <button class="event-btn" data-type="doctor">의사<span class="en">doctor visit</span></button>
+  <button class="event-btn" data-type="nurse">간호사<span class="en">nurse visit</span></button>
+  <button class="event-btn" data-type="meds">약<span class="en">medication</span></button>
+  <button class="event-btn" data-type="injection">주사<span class="en">injection / shot</span></button>
+  <button class="event-btn" data-type="meal">식사<span class="en">meal</span></button>
+  <button class="event-btn" data-type="fluids">물 · 음료<span class="en">fluids</span></button>
+  <button class="event-btn wide" data-type="note">메모 쓰기<span class="en">write a note</span></button>
+</div>
+
+<h2>기록 <span id="count" style="color:var(--ink-soft);font-weight:400;"></span></h2>
+<div class="entry-list" id="list"></div>
+<div class="empty" id="empty">아직 기록이 없습니다. 위 버튼을 눌러 시작하세요.</div>
+
+<div class="sendbar">
+  <button id="btnSend">기록 보내기</button>
+  <button id="btnCopy" aria-label="복사">복사</button>
+</div>
+
+<dialog id="timeDlg">
+  <h3>날짜·시간 고치기</h3>
+  <input type="date" id="dateInput">
+  <input type="time" id="timeInput">
+  <div class="dlg-row">
+    <button id="timeCancel">취소</button>
+    <button class="ok" id="timeOk">저장</button>
+  </div>
+</dialog>
+
+<dialog id="noteDlg">
+  <h3>메모</h3>
+  <textarea id="noteInput" rows="3" placeholder="예: 점심 반만 드심"></textarea>
+  <div class="dlg-row">
+    <button id="noteCancel">취소</button>
+    <button class="ok" id="noteOk">저장</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const LABELS = {
+  urination: '소변', bm: '대변', attempt: '대변 시도',
+  bp: '혈압', glucose: '혈당', imaging: '촬영',
+  neuroverbal: '질문 검사', neuromotor: '운동 검사',
+  doctor: '의사', nurse: '간호사', injection: '주사',
+  meal: '식사', fluids: '물·음료', meds: '약', note: '메모'
+};
+const ORDER = ['urination','bm','attempt','bp','glucose','imaging','neuroverbal','neuromotor','doctor','nurse','injection','meds','meal','fluids','note'];
+const NEEDS_VALUE = ['meds','bp','glucose','imaging','neuroverbal','neuromotor','doctor','injection'];
+const KEY = 'anbu.giroks.v1';
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+function nowTime(){
+  const d = new Date();
+  return pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+let storageOK = true;
+try { localStorage.setItem('t','1'); localStorage.removeItem('t'); } catch(e){ storageOK = false; }
+let mem = [];
+function load(){
+  if (!storageOK) return mem;
+  try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e){ return []; }
+}
+function save(list){
+  if (!storageOK){ mem = list; return; }
+  try { localStorage.setItem(KEY, JSON.stringify(list)); } catch(e){}
+}
+let items = load();
+
+document.getElementById('todayLabel').textContent = todayStr();
+
+/* --- event buttons --- */
+document.querySelectorAll('.event-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.type;
+    if (type === 'note'){
+      openNoteDlg(null);
+      return;
+    }
+    const id = uid();
+    items.push({ id, date: todayStr(), time: nowTime(), type, note: '' });
+    save(items); render();
+    toast(LABELS[type] + ' ' + nowTime() + ' 기록됨');
+    if (NEEDS_VALUE.includes(type)) openNoteDlg(id);
+  });
+});
+
+/* --- dialogs --- */
+const timeDlg = document.getElementById('timeDlg');
+const noteDlg = document.getElementById('noteDlg');
+let editId = null;
+
+function openTimeDlg(id){
+  editId = id;
+  const it = items.find(x => x.id === id);
+  document.getElementById('timeInput').value = it.time;
+  document.getElementById('dateInput').value = it.date;
+  timeDlg.showModal();
+}
+document.getElementById('timeOk').addEventListener('click', () => {
+  const v = document.getElementById('timeInput').value;
+  const dv = document.getElementById('dateInput').value;
+  if (editId){
+    const it = items.find(x => x.id === editId);
+    if (it){
+      if (v) it.time = v;
+      if (dv) it.date = dv;
+      save(items); render();
+    }
+  }
+  timeDlg.close();
+});
+document.getElementById('timeCancel').addEventListener('click', () => timeDlg.close());
+
+const NOTE_HINTS = {
+  meds: '약 이름 (예: 혈압약, 타이레놀)',
+  bp: '예: 132/84',
+  glucose: '예: 128',
+  imaging: '예: CT, MRI, 엑스레이',
+  neuroverbal: '예: 생일·장소 다 맞춤 / 좀 헷갈려 함',
+  neuromotor: '예: 다리 잘 듦, 혀 움직임 정상',
+  doctor: '예: 회진 — MRI 결과 내일 나온대',
+  nurse: '예: 체온 재감, 링거 교체',
+  injection: '예: 인슐린, 스테로이드',
+  meal: '예: 점심 반만 드심',
+  urination: '예: 양 적음',
+  bm: '예: 묽음',
+  attempt: '예: 5분 시도했지만 못 봄',
+  fluids: '예: 물 한 컵',
+  note: '예: 오후에 좀 피곤해 하심'
+};
+const DLG_TITLES = {
+  bp: '혈압 수치', glucose: '혈당 수치', meds: '약 이름',
+  imaging: '무슨 촬영인가요?', neuroverbal: '어떻게 하셨나요?', neuromotor: '어떻게 하셨나요?',
+  doctor: '뭐라고 했나요?', injection: '무슨 주사인가요?'
+};
+function openNoteDlg(id){
+  editId = id;
+  const it = id ? items.find(x => x.id === id) : null;
+  const t = it ? it.type : 'note';
+  document.getElementById('noteInput').value = it ? (it.note || '') : '';
+  document.getElementById('noteInput').placeholder = NOTE_HINTS[t] || '';
+  noteDlg.querySelector('h3').textContent = DLG_TITLES[t] || '메모';
+  noteDlg.showModal();
+}
+document.getElementById('noteOk').addEventListener('click', () => {
+  const v = document.getElementById('noteInput').value.trim();
+  if (editId){
+    const it = items.find(x => x.id === editId);
+    if (it){ it.note = v; }
+  } else if (v){
+    items.push({ id: uid(), date: todayStr(), time: nowTime(), type: 'note', note: v });
+  }
+  save(items); render(); noteDlg.close();
+});
+document.getElementById('noteCancel').addEventListener('click', () => noteDlg.close());
+
+/* --- list --- */
+function yesterStr(){
+  const d = new Date(); d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+function fmtK(ds){
+  const [y,m,d] = ds.split('-').map(Number);
+  return m + '월 ' + d + '일';
+}
+function render(){
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  const days = [todayStr(), yesterStr()];
+  let shown = 0;
+  for (let di = 0; di < days.length; di++){
+    const ds = days[di];
+    const dayItems = items.filter(i => i.date === ds).sort((a,b) => a.time.localeCompare(b.time));
+    if (!dayItems.length) continue;
+    shown += dayItems.length;
+    const hdr = document.createElement('div');
+    hdr.className = 'date-hdr';
+    hdr.textContent = fmtK(ds) + (di === 0 ? ' · 오늘' : ' · 어제');
+    list.appendChild(hdr);
+    renderDay(list, dayItems);
+  }
+  document.getElementById('empty').style.display = shown ? 'none' : 'block';
+  document.getElementById('count').textContent = shown ? '(' + shown + ')' : '';
+}
+function renderDay(list, dayItems){
+  for (const it of dayItems){
+    const row = document.createElement('div');
+    row.className = 'entry';
+    const tb = document.createElement('button');
+    tb.className = 'time-btn'; tb.textContent = it.time;
+    tb.setAttribute('aria-label','시간 고치기');
+    tb.addEventListener('click', () => openTimeDlg(it.id));
+    const lab = document.createElement('span');
+    lab.className = 'label';
+    lab.textContent = LABELS[it.type];
+    const n = document.createElement('span');
+    if (it.note){
+      n.className = 'note-text'; n.textContent = it.note;
+    } else {
+      n.className = 'note-text add'; n.textContent = '+ 메모';
+    }
+    lab.appendChild(n);
+    lab.style.cursor = 'pointer';
+    lab.addEventListener('click', () => openNoteDlg(it.id));
+    const del = document.createElement('button');
+    del.className = 'del'; del.textContent = '✕';
+    del.setAttribute('aria-label','지우기');
+    del.addEventListener('click', () => {
+      if (del.dataset.arm){
+        items = items.filter(x => x.id !== it.id);
+        save(items); render();
+        toast('지웠습니다');
+      } else {
+        del.dataset.arm = '1';
+        del.textContent = '지우기?';
+        del.classList.add('arm');
+        setTimeout(() => {
+          if (del.isConnected){
+            delete del.dataset.arm;
+            del.textContent = '✕';
+            del.classList.remove('arm');
+          }
+        }, 3000);
+      }
+    });
+    row.append(tb, lab, del);
+    list.appendChild(row);
+  }
+}
+
+/* --- compose & share --- */
+function composeDay(ds){
+  const dayItems = items.filter(i => i.date === ds)
+    .sort((a,b) => a.time.localeCompare(b.time));
+  if (!dayItems.length) return null;
+  let s = '[기록 ' + ds + ']\n';
+  for (const t of ORDER){
+    if (t === 'note') continue;
+    const evs = dayItems.filter(i => i.type === t);
+    if (evs.length){
+      s += LABELS[t] + ' ' + evs.map(e => e.time + (e.note ? '(' + e.note + ')' : '')).join(', ')
+        + ' (' + evs.length + '회)\n';
+    }
+  }
+  const notes = dayItems.filter(i => i.type === 'note');
+  for (const n of notes){
+    s += '메모 ' + n.time + ' ' + n.note + '\n';
+  }
+  return s.trimEnd();
+}
+function composeToday(){
+  const blocks = [yesterStr(), todayStr()].map(composeDay).filter(Boolean);
+  return blocks.length ? blocks.join('\n\n') : null;
+}
+
+document.getElementById('btnSend').addEventListener('click', async () => {
+  const text = composeToday();
+  if (!text){ toast('보낼 기록이 없습니다'); return; }
+  if (navigator.share){
+    try { await navigator.share({ text }); return; }
+    catch(e){ if (e.name === 'AbortError') return; }
+  }
+  copyText(text);
+});
+document.getElementById('btnCopy').addEventListener('click', () => {
+  const text = composeToday();
+  if (!text){ toast('보낼 기록이 없습니다'); return; }
+  copyText(text);
+});
+function copyText(text){
+  if (navigator.clipboard){
+    navigator.clipboard.writeText(text).then(() => toast('복사됨 — 채팅방에 붙여넣으세요'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('복사됨 — 채팅방에 붙여넣으세요'); } catch(e){}
+    ta.remove();
+  }
+}
+
+/* --- toast --- */
+let tt = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+render();
+</script>
+</body>
+</html>
